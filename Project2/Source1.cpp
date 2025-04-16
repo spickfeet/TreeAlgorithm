@@ -2,6 +2,165 @@
 #include <vector>
 #include <chrono>
 #include <random>
+#include <string>
+using namespace std;
+
+
+// Способ с массивом
+
+const int ALPHABET_SIZE = 26;
+
+struct TrieNodeArray {
+    TrieNodeArray* children[ALPHABET_SIZE];
+    bool isEndOfWord;
+
+    TrieNodeArray() : isEndOfWord(false) {
+        for (int i = 0; i < ALPHABET_SIZE; i++)
+            children[i] = nullptr;
+    }
+};
+
+// Функция для подсчета используемой памяти
+size_t calculateMemoryUsage(TrieNodeArray* node) {
+    if (!node) return 0;
+    size_t size = sizeof(*node); // Память для текущего узла
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        size += calculateMemoryUsage(node->children[i]); // Рекурсивно добавляем детей
+    }
+    return size;
+}
+
+
+
+TrieNodeArray* root = nullptr;  // Глобальная переменная для корня
+
+TrieNodeArray* getNode() {
+    return new TrieNodeArray();
+}
+
+void insert(TrieNodeArray* root, const string& key) {
+    TrieNodeArray* pCrawl = root;
+    for (char c : key) {
+        int index = c - 'a';
+        if (!pCrawl->children[index]) {
+            pCrawl->children[index] = getNode();
+        }
+        pCrawl = pCrawl->children[index];
+    }
+    pCrawl->isEndOfWord = true;
+}
+
+// Общее количество узлов (без корня)
+int countTotalNodes(TrieNodeArray* node) {
+    if (!node) return 0;
+    int count = 0;  // Не считаем текущий узел если это корень
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        count += countTotalNodes(node->children[i]);
+    }
+    return node == root ? count : count + 1;  // Пропускаем корень
+}
+
+// Количество слов (листовых вершин)
+int countLeafWords(TrieNodeArray* node) {
+    if (!node) return 0;
+    int count = node->isEndOfWord ? 1 : 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        count += countLeafWords(node->children[i]);
+    }
+    return count;
+}
+
+// Количество внутренних вершин (не корень и не листья)
+int countInternalNodes(TrieNodeArray* node, bool isRoot = true) {
+    if (!node) return 0;
+
+    bool hasChildren = false;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (node->children[i]) {
+            hasChildren = true;
+            break;
+        }
+    }
+
+    int count = (!isRoot && hasChildren) ? 1 : 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        count += countInternalNodes(node->children[i], false);
+    }
+    return count;
+}
+
+// Количество ветвлений (узлов с >1 ребенком, кроме корня)
+int countBranchingNodes(TrieNodeArray* node, bool isRoot = true) {
+    if (!node) return 0;
+
+    int childCount = 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (node->children[i]) childCount++;
+    }
+
+    int count = (!isRoot && childCount > 1) ? 1 : 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        count += countBranchingNodes(node->children[i], false);
+    }
+    return count;
+}
+
+bool hasAnyWord(TrieNodeArray* node) {
+    if (!node) return false;
+    if (node->isEndOfWord) return true;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (hasAnyWord(node->children[i])) return true;
+    }
+    return false;
+}
+
+pair<int, int> countRealBranchings(TrieNodeArray* node, bool isRoot = true) {
+    if (!node) return { 0, 0 };
+
+    int childCount = 0;
+    vector<TrieNodeArray*> activeChildren;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (node->children[i]) {
+            childCount++;
+            activeChildren.push_back(node->children[i]);
+        }
+    }
+
+    bool isRealBranch = false;
+    if (childCount > 1 && !isRoot) {
+        int wordPaths = 0;
+        for (auto child : activeChildren) {
+            if (child->isEndOfWord) wordPaths++;
+            if (hasAnyWord(child)) wordPaths++;
+            if (wordPaths >= 2) {
+                isRealBranch = true;
+                break;
+            }
+        }
+    }
+
+    int sum = 0, count = 0;
+    if (isRealBranch) {
+        sum = childCount;
+        count = 1;
+    }
+
+    for (auto child : activeChildren) {
+        auto childStats = countRealBranchings(child, false);
+        sum += childStats.first;
+        count += childStats.second;
+    }
+
+    return { sum, count };
+}
+
+double calculateAvgBranching(TrieNodeArray* root) {
+    auto stats = countRealBranchings(root);
+    return (stats.second == 0) ? 0.0 :
+        static_cast<double>(stats.first) / stats.second;
+}
+
+// Способ с листом
 
 class TrieNode;
 
@@ -253,6 +412,7 @@ void generateWords(std::vector<std::string>& words, int minLen, int maxLen, int 
         words.push_back(word);
     }
 }
+
 int main() {
     setlocale(LC_ALL, "Russian");
 
@@ -260,8 +420,39 @@ int main() {
     std::vector<std::string> words = {};
     generateWords(words, 4, 8, 500);
 
+    // Массив
+    cout<<endl <<"***************************** Способ 1: массив ***********************************"<<endl;
+    for (size_t i = 1; i <= 10; i++)
+    {
+        std::cout << std::endl << "---------------- n = " << i * 50 << " ----------------" << std::endl;
+        root = getNode();
+        auto start_time = std::chrono::high_resolution_clock::now();
+        for (size_t j = 0; j < 50 * i; j++)
+        {
+            insert(root,words[j]);
+        }
 
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
+        std::cout << "Время постройки дерева: " << duration.count() << " микросекунд\n";
+
+        std::cout << std::endl << "Подсчет памяти" << std::endl;
+
+        size_t totalMemory = calculateMemoryUsage(root);
+        std::cout << "Память: " << totalMemory << " байт (~"
+            << totalMemory / 1024.0 << " KB)\n";
+
+        std::cout << "\nПараметры дерева:\n";
+        std::cout << "1. Общее количество узлов (символов): " << countTotalNodes(root) << std::endl;
+        std::cout << "2. Количество слов (листовых вершин): " << countLeafWords(root) << std::endl;
+        std::cout << "3. Количество внутренних вершин. " << countInternalNodes(root) << std::endl;
+        std::cout << "4. Количество ветвлений (внутренних вершин из которых более одного пути). " << countBranchingNodes(root) << std::endl;
+        std::cout << "5. Среднее количество путей в вершинах ветвлений. " << calculateAvgBranching(root) << std::endl;
+    }
+
+    // Список
+    cout << endl << "***************************** Способ 2: список ***********************************" << endl;
     for (size_t i = 1; i <= 10; i++)
     {
         std::cout << std::endl << "---------------- n = " << i * 50 <<" ----------------" << std::endl;
@@ -299,6 +490,10 @@ int main() {
         std::cout << "4. Количество ветвлений (внутренних вершин из которых более одного пути). " << trie.branchingNodeCount() << std::endl;
         std::cout << "5. Среднее количество путей в вершинах ветвлений. " << trie.averageBranchingPaths() << std::endl;
     }
+    
+    
+    
+    
     //std::cout << "\nДерево:\n";
     //trie.printTree();
     //return 0;
