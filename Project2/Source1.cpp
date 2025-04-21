@@ -395,19 +395,26 @@ public:
         return branchCount > 0 ? static_cast<double>(totalPaths) / branchCount : 0.0;
     }
 };
-void generateWords(std::vector<std::string>& words, int minLen, int maxLen, int count) {
+void generateWords(std::vector<std::string>& words, int minLen, int maxLen, int n) {
     static const std::string alphabet = "abcdefghijklmnopqrstuvwxyz";
     std::mt19937 rng(static_cast<unsigned>(std::time(nullptr)));
     std::uniform_int_distribution<int> lenDist(minLen, maxLen);
     std::uniform_int_distribution<int> charDist(0, alphabet.size() - 1);
 
+    std::uniform_int_distribution<int> rand(0, 100);
+
     words.clear();
 
-    for (int i = 0; i < count; ++i) {
-        int len = lenDist(rng);
+    while (n > 0) {
         std::string word;
-        for (int j = 0; j < len; ++j) {
+        int lineLen = 0;
+        while (lineLen == 0 || (rand(rng) >= 15 && n != 0)) {
             word += alphabet[charDist(rng)];
+            lineLen++;
+            n--;
+            if (n % 50 == 0) {
+                break;
+            }
         }
         words.push_back(word);
     }
@@ -418,21 +425,68 @@ int main() {
 
 
     std::vector<std::string> words = {};
-    generateWords(words, 4, 8, 500);
+    generateWords(words, 4, 8, 1000);
+
+    //int currentN = 0;
+    //Trie trie;
+    //int j = 0;
+    //auto start_time = std::chrono::high_resolution_clock::now();
+    //while (true)
+    //{
+    //    trie.insert(words[j]);
+    //    currentN += words[j].length();
+    //    if (currentN % 50 == 0) break;
+    //    j++;
+    //}
+    //auto end_time = std::chrono::high_resolution_clock::now();
+    //std::cout << std::endl << "---------------- n = " << currentN << " ----------------" << std::endl;
+    //auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    //std::cout << "Время постройки дерева: " << duration.count() << " микросекунд\n";
+
+    //std::cout << std::endl << "Подсчет памяти" << std::endl;
+
+    //int totalTrieNodes = trie.countTrieNodes(trie.root);
+    //int totalListNodes = trie.countListNodes(trie.root);
+
+    ////std::cout << "totalTrieNodes = " << totalTrieNodes << std::endl;
+    ////std::cout << "totalListNodes = " << totalListNodes << std::endl;
+
+    ////std::cout << "sizeof(TrieNode)) = " << sizeof(TrieNode) << std::endl;
+    ////std::cout << "sizeof(ListNode) = " << sizeof(ListNode) << std::endl;
+
+    //size_t totalMemory = (totalTrieNodes * sizeof(TrieNode)) + (totalListNodes * sizeof(ListNode));
+    //std::cout << "Память: " << totalMemory << " байт (~"
+    //    << totalMemory / 1024.0 << " KB)\n";
+
+    //std::cout << "\nПараметры дерева:\n";
+    //std::cout << "1. Общее количество узлов (символов): " << trie.totalChars() << std::endl;
+    //std::cout << "2. Количество слов (листовых вершин): " << trie.wordCount() << std::endl;
+    //std::cout << "3. Количество внутренних вершин. " << trie.internalNodeCount() << std::endl;
+    //std::cout << "4. Количество ветвлений (внутренних вершин из которых более одного пути). " << trie.branchingNodeCount() << std::endl;
+    //std::cout << "5. Среднее количество путей в вершинах ветвлений. " << trie.averageBranchingPaths() << std::endl;
+    //
+    //std::cout << "\nДерево:\n";
+    //trie.printTree();
 
     // Массив
+    
     cout<<endl <<"***************************** Способ 1: массив ***********************************"<<endl;
     for (size_t i = 1; i <= 10; i++)
     {
-        std::cout << std::endl << "---------------- n = " << i * 50 << " ----------------" << std::endl;
+        int currentN = 0;
         root = getNode();
+        int j = 0;
         auto start_time = std::chrono::high_resolution_clock::now();
-        for (size_t j = 0; j < 50 * i; j++)
+        while (true)
         {
             insert(root,words[j]);
+            currentN += words[j].length();
+            if (currentN == i * 50) break;
+            j++;
         }
-
         auto end_time = std::chrono::high_resolution_clock::now();
+        std::cout << std::endl << "---------------- n = " << currentN << " ----------------" << std::endl;
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
         std::cout << "Время постройки дерева: " << duration.count() << " микросекунд\n";
@@ -450,20 +504,23 @@ int main() {
         std::cout << "4. Количество ветвлений (внутренних вершин из которых более одного пути). " << countBranchingNodes(root) << std::endl;
         std::cout << "5. Среднее количество путей в вершинах ветвлений. " << calculateAvgBranching(root) << std::endl;
     }
-
     // Список
     cout << endl << "***************************** Способ 2: список ***********************************" << endl;
     for (size_t i = 1; i <= 10; i++)
     {
-        std::cout << std::endl << "---------------- n = " << i * 50 <<" ----------------" << std::endl;
+        int currentN = 0;
         Trie trie;
+        int j = 0;
         auto start_time = std::chrono::high_resolution_clock::now();
-        for (size_t j = 0; j < 50 * i; j++)
+        while (true)
         {
             trie.insert(words[j]);
+            currentN += words[j].length();
+            if (currentN == i * 50) break;
+            j++;
         }
-
         auto end_time = std::chrono::high_resolution_clock::now();
+        std::cout << std::endl << "---------------- n = " << currentN << " ----------------" << std::endl;
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
         std::cout << "Время постройки дерева: " << duration.count() << " микросекунд\n";
